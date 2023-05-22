@@ -2,6 +2,8 @@ package com.template;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.os.Handler;
 import android.util.Log;
@@ -26,6 +28,8 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.UUID;
 
+import static androidx.core.content.ContentResolverCompat.query;
+
 public class LoadingActivity extends AppCompatActivity {
     public static String domen = "";
     public static URL url;
@@ -43,6 +47,8 @@ public class LoadingActivity extends AppCompatActivity {
     int i = 0;
     FirebaseFirestore db = FirebaseFirestore.getInstance();
     DocumentReference docRef = db.collection("database").document("check");
+    SQLiteDatabase sqlite;
+    Cursor query;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -50,6 +56,12 @@ public class LoadingActivity extends AppCompatActivity {
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,WindowManager.LayoutParams.FLAG_FULLSCREEN);
         setContentView(R.layout.activity_loading);
+
+        sqlite = getBaseContext().openOrCreateDatabase("app.db", MODE_PRIVATE, null);
+        query = sqlite.rawQuery("SELECT * FROM params WHERE id=1", null);
+//        sqlite.execSQL("DROP TABLE IF EXISTS params");
+        sqlite.execSQL("CREATE TABLE IF NOT EXISTS params (id INTEGER PRIMARY KEY AUTOINCREMENT, firebase INTEGER)");
+        sqlite.execSQL("INSERT OR IGNORE INTO params(firebase) VALUES (0)");
 
         progressBar = findViewById(R.id.progress_bar);
         final Handler handler = new Handler();
@@ -69,31 +81,39 @@ public class LoadingActivity extends AppCompatActivity {
         settings = getSharedPreferences(PREFS_FILE, MODE_PRIVATE);
    //     prefEditor = settings.edit(); prefEditor.clear();prefEditor.apply();
         String name = settings.getString(PREF_NAME, "");
-        String fire = settings.getString(FIREBASE_EXISTS,"");
+     //   String fire = settings.getString(FIREBASE_EXISTS,"");
         Log.d("HTTP-GET", "All PREFS " + settings.getAll());
-        if (name != "") {
+        query.moveToFirst();
+        Log.d("HTTP-GET", "Database Int: " + query.getInt(1));
+      //  if (fire!="") {
+        if (query.getInt(1)==1) {
+            mainActivity();
+            finish();
+        }else if (name != "" && !name.isEmpty()) {
             domen = name;
             webActivity();
-        } else if (fire!="") {
-            mainActivity();
-        } else {
+        } else{
             docRef.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
                 @Override
                 public void onComplete(@NonNull Task<DocumentSnapshot> task) {
                     if (task.isSuccessful()) {
-                        DocumentSnapshot document = task.getResult();
+                        DocumentSnapshot document = task.getResult();Log.d("HTTP-GET", "document " + document);
                         if (document.exists()) {
                             domenFromFirebase = document.getString("link");
                             Log.d("HTTP-GET", "dbResponse: " + domenFromFirebase);
-                        } else {
-                            prefEditor = settings.edit();
-                            prefEditor.putString(FIREBASE_EXISTS, "false");
-                            prefEditor.apply();
-                            Log.d("HTTP-GET", "PREFS FIREBASE FAILED " + settings.getAll());
-                            mainActivity();
+                            if (domenFromFirebase==null){
+                                prefEditor = settings.edit();
+                                prefEditor.putString(FIREBASE_EXISTS, "false");
+                                prefEditor.apply();
+                                Log.d("HTTP-GET", "PREFS FIREBASE FAILED " + settings.getAll());
+                                sqlite.execSQL("UPDATE params SET firebase = 1 WHERE id='1'");
+                                mainActivity();
+                                finish();
+                            }
                         }
                     } else {
                         mainActivity();
+                        finish();
                     }
                     url = buildURL();
                     Log.d("HTTP-GET", "url got: " + url);
@@ -110,6 +130,7 @@ public class LoadingActivity extends AppCompatActivity {
                                 throw new RuntimeException(e);
                             }
                             webActivity();
+                            finish();
                         }
                     }).start();
 
@@ -127,6 +148,8 @@ public class LoadingActivity extends AppCompatActivity {
         prefEditor = settings.edit();
         prefEditor.putString(PREF_NAME, name);
         prefEditor.apply();
+        query.close();
+        sqlite.close();
     }
 
     public void mainActivity() {
