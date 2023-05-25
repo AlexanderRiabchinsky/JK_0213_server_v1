@@ -26,3 +26,5 @@ A
 gradle.properties,2\a\2afbb999f001938c88fa43fc2ef52abf0f8213e4
 r
 Bapp/src/androidTest/java/com/template/ExampleInstrumentedTest.java,4\e\4e1885b38d8393fef3fac8ac711dfd8395833b4b
+P
+ app/src/main/AndroidManifest.xml,8\c\8c55c3ccc257e5907959013f99656e4c8ec3903e

@@ -47,8 +47,8 @@ public class LoadingActivity extends AppCompatActivity {
     int i = 0;
     FirebaseFirestore db = FirebaseFirestore.getInstance();
     DocumentReference docRef = db.collection("database").document("check");
-    SQLiteDatabase sqlite;
-    Cursor query;
+    SQLiteDatabase sqlite=null;
+    Cursor query= null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,10 +58,10 @@ public class LoadingActivity extends AppCompatActivity {
         setContentView(R.layout.activity_loading);
 
         sqlite = getBaseContext().openOrCreateDatabase("app.db", MODE_PRIVATE, null);
-        query = sqlite.rawQuery("SELECT * FROM params WHERE id=1", null);
 //        sqlite.execSQL("DROP TABLE IF EXISTS params");
         sqlite.execSQL("CREATE TABLE IF NOT EXISTS params (id INTEGER PRIMARY KEY AUTOINCREMENT, firebase INTEGER)");
         sqlite.execSQL("INSERT OR IGNORE INTO params(firebase) VALUES (0)");
+        query = sqlite.rawQuery("SELECT * FROM params WHERE id=1", null);
 
         progressBar = findViewById(R.id.progress_bar);
         final Handler handler = new Handler();
@@ -79,7 +79,7 @@ public class LoadingActivity extends AppCompatActivity {
         }, 40);
 
         settings = getSharedPreferences(PREFS_FILE, MODE_PRIVATE);
-   //     prefEditor = settings.edit(); prefEditor.clear();prefEditor.apply();
+//        prefEditor = settings.edit(); prefEditor.clear();prefEditor.apply();
         String name = settings.getString(PREF_NAME, "");
      //   String fire = settings.getString(FIREBASE_EXISTS,"");
         Log.d("HTTP-GET", "All PREFS " + settings.getAll());
@@ -93,6 +93,7 @@ public class LoadingActivity extends AppCompatActivity {
             domen = name;
             webActivity();
         } else{
+            Log.d("HTTP-GET", "2 первых else пройдены");
             docRef.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
                 @Override
                 public void onComplete(@NonNull Task<DocumentSnapshot> task) {
